@@ -1,7 +1,7 @@
 const WebSocket = require('ws')
-let wss;
-
-let wsson = process.env.WSS || false;
+const wss = new WebSocket.Server({ port: 443 }, () => {
+    console.log('server started')
+})
 
 
 let duo = [];
@@ -103,7 +103,6 @@ wss.on('listening', () => {
     console.log('listening on 443')
 })
 
-
 wss.broadcast = function broadcast(msg) {
     console.log(msg);
     wss.clients.forEach(function each(client) {
@@ -125,13 +124,8 @@ router.get("/", (req, res) => {
 
 app.use("/", router);
 
-if (!wsson) {
-    const PORT = process.env.PORT || 80;
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
-} else {
-    wss = new WebSocket.Server({ port: process.env.PORT }, () => {
-        console.log('server started')
-    })
-}
+// Use process.env.PORT instead of process.env.port
+const PORT = process.env.PORT || 80;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
