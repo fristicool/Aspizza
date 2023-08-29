@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Team</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #FEC511;
+        }
+
+        .login-container {
+            background-color: #FEC511;
+            border-radius: 10px;
+            box-shadow: 0px 0px 3rem rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .login-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        button,
+        select {
+            padding: 10px;
+            background-color: #FF542F;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .login-form button:hover {
+            background-color: #ff552fbe;
+        }
+    </style>
+    <Script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const addTeamButton = document.getElementById('addTeamButton');
+            const hostname = window.location.hostname; // Get the current hostname
+            const websocketURL = prompt("Enter WebSocket Connection String:", "ws://localhost:8080");
+
+            const socket = new WebSocket(websocketURL);
+
+            let storage = window.localStorage;
+
+
+            addTeamButton.addEventListener('click', () => {
+
+                event.preventDefault()
+
+                const teamName = document.getElementById('teamNameInput').value;
+                const beginScore = document.getElementById('beginScoreInput').value;
+                const rankingSelect = document.getElementById('rankingSelect').value;
+
+                const message = `CreateTeam:${rankingSelect}:${teamName}:${beginScore}`
+                console.log(message)
+
+                socket.send(message);
+            });
+
+            const updateRankingSelect = document.getElementById('updateRankingSelect');
+            const teamListContainer = document.getElementById('teamListContainer');
+            const updateRankingTeamSelect = document.getElementById('updateRankingTeam');
+            const updateTeamRankingPrePointsSelect = document.getElementById('updateTeamRankingPrePoints');
+            const customScoreInput = document.getElementById('customScore');
+            const addTeamPointsButton = document.getElementById('addTeamPointsButton');
+
+            const customMessage = document.getElementById('customMessage');
+            const sendCustomMessageButton = document.getElementById('sendCustomMessage');
+
+            updateRankingSelect.addEventListener('change', () => {
+                const selectedRanking = updateRankingSelect.value;
+                const message = `GetTeams:${selectedRanking}`;
+                socket.send(message);
+            });
+
+            socket.onmessage = (event) => {
+                const data = event.data;
+                const parts = data.split('*');
+
+                if (parts[0] === 'Teams') {
+                    populateTeamOptions(updateRankingTeamSelect, parts[1]);
+                }
+            };
+
+            function renderTeams(teamData) {
+                teamListContainer.innerHTML = ''; // Clear previous content
+
+                teamData = JSON.parse(teamData)
+
+                const teams = [];
+                for (let i = 0; i < teamData.length; i++) {
+                    const teamName = teamData[i].name;
+                    const teamScore = teamData[i].score;
+
+                    console.log(teamName)
+                    teams.push({ name: teamName, score: teamScore });
+                }
+
+                // Create and append list items for each team
+                const ul = document.createElement('ul');
+                teams.forEach(team => {
+                    const li = document.createElement('li');
+                    li.textContent = `Name: ${team.name}, Score: ${team.score}`;
+                    ul.appendChild(li);
+                });
+
+                teamListContainer.appendChild(ul);
+            }
+
+            function populateTeamOptions(selectElement, teamData) {
+                selectElement.innerHTML = ''; // Clear previous options
+                selectElement.options.add(new Option('Select a Team', '')); // Add default option
+
+                teamData = JSON.parse(teamData)
+
+                for (let i = 0; i < teamData.length; i += 1) {
+                    const teamName = teamData[i].name;
+                    const teamScore = teamData[i].score;
+                    const optionText = `${teamName} : ${teamScore}`;
+                    selectElement.options.add(new Option(optionText, teamName)); // Add an option
+                }
+            }
+
+            addTeamPointsButton.addEventListener('click', () => {
+                const selectedBoard = updateRankingSelect.value;
+                const selectedTeam = updateRankingTeamSelect.value;
+                const selectedPredefinedPoints = updateTeamRankingPrePointsSelect.value;
+                const customPoints = parseInt(customScoreInput.value);
+
+                // Choose either the custom score or predefined points
+                const scoreToAdd = customPoints !== 0 ? customPoints : parseInt(selectedPredefinedPoints);
+
+                const message = `AddPoints:${selectedBoard}:${selectedTeam}:${scoreToAdd}`;
+                socket.send(message);
+            });
+
+            sendCustomMessageButton.addEventListener('click', () => {
+                const message = `Message:${customMessage.value}`;
+                socket.send(message);
+            })
+
+            const resetButton = document.getElementById('resetBoard');
+
+            resetButton.addEventListener('click', function () {
+                let r = confirm("Are you sure you want to reset the board?");
+                if (r == true) {
+                    const message = `Reset`
+
+                    socket.send(message)
+                }
+            });
+
+            const reloadButton = document.getElementById("reloadBoard");
+
+            reloadButton.addEventListener('click', () => {
+                let r = confirm("Are you sure you want to relaod the board?");
+                if (r == true) {
+                    const message = `Reload`
+
+                    socket.send(message)
+                }
+            })
+        });
+    </Script>
+</head>
+
+<body>
+    <div style="display: flex; width: 100vw; padding-left: 20rem; padding-right: 20rem; justify-content: space-around;">
+        <div class="login-container">
+            <h2>Nieuw Team</h2>
+            <form class="login-form">
+                <input id="teamNameInput" type="text" placeholder="Team Naam" required>
+                <input id="beginScoreInput" type="number" placeholder="Begin Score" required>
+                <select id="rankingSelect" style="margin-bottom: 20px;padding: 10px;
+                background-color: #FF542F;
+                color: #fff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;">
+                    <option value="10">Groep</option>
+                    <option value="2">Duo</option>
+                </select>
+                <button id="addTeamButton" type="button">Add Team</button>
+            </form>
+        </div>
+        <div class="login-container">
+            <h2>Update Team</h2>
+            <select id="updateRankingSelect" class="login-form">
+                <option value="10">Groep</option>
+                <option value="2">Duo</option>
+            </select>
+            <select id="updateRankingTeam" class="login-form">
+                <!-- Add default option -->
+                <option value="">Select a Team</option>
+            </select>
+            <select id="updateTeamRankingPrePoints" class="login-form">
+                <!-- Add default option -->
+                <option value="500">Bonnetje - 500</option>
+                <option value="5000">Kleine Zuipkaart - 5000</option>
+                <option value="12500">Grote Zuipkaart - 12500</option>
+            </select>
+            <input id="customScore" type="number" placeholder="Custom Score" value="0">
+            <button id="addTeamPointsButton" type="button">Add Team Points</button>
+        </div>
+        <div class="login-container">
+            <h2>Custom Message</h2>
+            <input id="customMessage" type="text" placeholder="Custom Message">
+            <button id="sendCustomMessage" type="button">Send Message</button>
+            <h2>Settings</h2>
+            <button id="resetBoard" type="button">Reset Board</button>
+            <button id="reloadBoard" type="button" style="background-color: rgb(70, 70, 255);">Reload Board</button>
+        </div>
+    </div>
+</body>
+
+</html>
