@@ -1,5 +1,6 @@
 const WebSocket = require('ws')
-const wss = new WebSocket.Server({ port: 443 }, () => {
+require("dotenv").config();
+const wss = new WebSocket.Server({ port: 8080, host: process.env.IP }, () => {
     console.log('server started')
 })
 
@@ -100,7 +101,7 @@ function getTeamByName(teamName, board) {
 }
 
 wss.on('listening', () => {
-    console.log('listening on 443')
+    console.log('listening on 8080')
 })
 
 wss.broadcast = function broadcast(msg) {
@@ -126,6 +127,6 @@ app.use("/", router);
 
 // Use process.env.PORT instead of process.env.port
 const PORT = process.env.PORT || 80;
-app.listen(PORT, () => {
+app.listen(PORT, process.env.IP, () => {
     console.log(`Server is running on port ${PORT}`);
 });
